@@ -44,7 +44,7 @@ public static class MongoDBReplicaSetExtensions
                 connectionString = await replicaSet.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
             });
 
-            var healthCheckKey = $"{replicaSetName}_check";
+            var healthCheckKey = $"{name}_check";
             
             // cache the admin database so it is reused on subsequent calls to the health check
             IMongoDatabase? adminDatabase = null;
@@ -103,8 +103,7 @@ public static class MongoDBReplicaSetExtensions
                 .WithKeyFile(builder.Resource.KeyFile)
                 .WithTls(builder.Resource)
                 .WithEndpointProxySupport(false)
-                .WithDirectConnectionHealthChecks()
-                ;
+                .WithDirectConnectionHealthChecks();
 
             member.OnInitializeResource((_, _, _) =>
             {
@@ -130,13 +129,59 @@ public static class MongoDBReplicaSetExtensions
 
             builder.WithChildRelationship(member);
             builder.WaitForStart(member);
-            builder.WithAnnotation(new ConnectionStringRedirectAnnotation(member.Resource));
 
             var options = new MongoDBReplicaSetMemberOptions();
             configureMember?.Invoke(options);
             builder.Resource.AddMember(member.Resource, options);
 
             return builder;
+        }
+
+        public IResourceBuilder<MongoDBReplicaSetResource> WithDbGate(Action<IResourceBuilder<DbGateContainerResource>>? configureContainer = null, string? containerName = null)
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+
+            containerName ??= "dbgate";
+
+            var dbGateBuilder = builder.ApplicationBuilder.AddDbGate(containerName);
+
+            dbGateBuilder
+                .WithEnvironment(ConfigureDbGateContainer)
+                .WaitFor(builder);
+
+            configureContainer?.Invoke(dbGateBuilder);
+
+            return builder;
+
+            void ConfigureDbGateContainer(EnvironmentCallbackContext context)
+            {
+                var mongoDBServer = builder.Resource;
+
+                var name = mongoDBServer.Name;
+                var label = $"LABEL_{name}";
+
+                // Multiple WithDbGate calls will be ignored
+                if (context.EnvironmentVariables.ContainsKey(label))
+                {
+                    return;
+                }
+
+                // DbGate assumes MongoDB is being accessed over a default Aspire container network and hardcodes the resource address
+                // This will need to be refactored once updated service discovery APIs are available
+                context.EnvironmentVariables.Add(label, name);
+                context.EnvironmentVariables.Add($"URL_{name}", mongoDBServer.ConnectionStringExpression);
+                context.EnvironmentVariables.Add($"ENGINE_{name}", "mongo@dbgate-plugin-mongo");
+                context.EnvironmentVariables.Add($"USE_SSL_{name}", "true");
+
+                if (context.EnvironmentVariables.GetValueOrDefault("CONNECTIONS") is string { Length: > 0 } connections)
+                {
+                    context.EnvironmentVariables["CONNECTIONS"] = $"{connections},{name}";
+                }
+                else
+                {
+                    context.EnvironmentVariables["CONNECTIONS"] = name;
+                }
+            }
         }
     }
 

@@ -2,7 +2,9 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var mongoServer = builder.AddMongoDB("TestMongo", 27017);
+var mongoServer = builder.AddMongoDB("TestMongo", 27017)
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
 
 mongoServer.AddDatabase("TestMongoDB", "TestDB");
 

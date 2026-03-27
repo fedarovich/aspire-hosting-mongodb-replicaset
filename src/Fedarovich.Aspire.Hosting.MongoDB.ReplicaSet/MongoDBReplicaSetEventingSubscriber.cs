@@ -120,7 +120,7 @@ internal class MongoDBReplicaSetEventingSubscriber(
         }
         catch (MongoCommandException ex)
         {
-            if (ex.CodeName != "AlreadyInitialized")
+            if (ex.CodeName == "AlreadyInitialized")
             {
                 logger.LogDebug("The replica set is already initialized.");
                 return true;
