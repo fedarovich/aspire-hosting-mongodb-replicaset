@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Samples/">
+    <Project Path="../samples/CSharp/MongoDB.SingleReplica/MongoDB.SingleReplica.csproj" Id="555682ca-43f7-4f93-bfa6-e01d0fd5afcf" />
+  </Folder>
+  <Project Path="Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.csproj" Id="c85c414d-9eff-460f-86ae-a8f78b7c5700" />
+</Solution>
