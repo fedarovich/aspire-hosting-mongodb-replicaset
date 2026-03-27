@@ -4,13 +4,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Copyright>© Pavel Fedarovich, 2026)</Copyright>
+    <Copyright>© Pavel Fedarovich, 2026</Copyright>
     <PackageProjectUrl>https://github.com/fedarovich/aspire-hosting-mongodb-replicaset</PackageProjectUrl>
     <RepositoryUrl>https://github.com/fedarovich/aspire-hosting-mongodb-replicaset.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Aspire; MongoDB; Replica Set</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Description>Adds support for creating MongoDB replica sets in Aspire hosting environment.</Description>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

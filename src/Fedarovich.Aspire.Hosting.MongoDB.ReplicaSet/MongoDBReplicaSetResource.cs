@@ -1,5 +1,11 @@
 ﻿namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 
+/// <summary>
+/// A resource that represents a MongoDB replica set.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="replicaSetName">The name of the MongoDB replica set. It must be unique across all replica sets in the same environment.</param>
+/// <param name="keyFile">The parameter resource that represents the contents of the MongoDB key file used to authorize replica set members.</param>
 public class MongoDBReplicaSetResource(string name, string replicaSetName, ParameterResource keyFile) : Resource(name), 
     IResourceWithEnvironment, 
     IResourceWithArgs,

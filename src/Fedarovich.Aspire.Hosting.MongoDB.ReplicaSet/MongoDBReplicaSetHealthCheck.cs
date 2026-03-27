@@ -3,8 +3,13 @@ using MongoDB.Bson;
 
 namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 
+/// <summary>
+/// A health check implementation that verifies the health of a MongoDB replica set by executing the <c>replSetGetStatus</c> command against the admin database.    
+/// </summary>
+/// <param name="adminDatabase">The <c>admin</c> database.</param>
 public class MongoDBReplicaSetHealthCheck(IMongoDatabase adminDatabase) : IHealthCheck
 {
+    /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         var command = new BsonDocument { { "replSetGetStatus", 1 } };

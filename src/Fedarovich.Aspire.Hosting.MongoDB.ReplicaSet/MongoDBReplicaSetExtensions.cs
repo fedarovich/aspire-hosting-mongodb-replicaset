@@ -8,6 +8,9 @@ using System.Text;
 
 namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 
+/// <summary>
+/// Provides extension methods for configuring MongoDB replica set resources within a distributed application built using the Aspire framework.
+/// </summary>
 public static class MongoDBReplicaSetExtensions
 {
     private const int UserId = 999;
@@ -15,6 +18,15 @@ public static class MongoDBReplicaSetExtensions
 
     extension(IDistributedApplicationBuilder builder)
     {
+        /// <summary>
+        /// Add a MongoDB replica set resource to the application model.
+        /// </summary>
+        /// <param name="name">Resource name.</param>
+        /// <param name="replicaSetName">Replica set name.</param>
+        /// <param name="keyFileParameter">
+        /// <para>Parameter resource builder for the content of MongoDB key file, which is used for mutual replica set member authentication.</para>
+        /// <para>If <see langword="null"/>, a new resource with a random key will be generated and saved into user secrets.</para>
+        /// </param>
         public IResourceBuilder<MongoDBReplicaSetResource> AddMongoDBReplicaSet(string name,
             string replicaSetName = "rs0",
             IResourceBuilder<ParameterResource>? keyFileParameter = null)
@@ -80,6 +92,23 @@ public static class MongoDBReplicaSetExtensions
 
     extension(IResourceBuilder<MongoDBReplicaSetResource> builder)
     {
+        /// <summary>
+        /// Adds a MongoDB server resource as a member of the replica set, applying optional member-specific  configuration.
+        /// </summary>
+        /// <remarks>
+        /// This method ensures that the member is properly configured before being added to the replica set,
+        /// including forcing TLS, handling annotations for certificates and certificate authority collections.
+        /// </remarks>
+        /// <param name="member">
+        /// The resource builder for the MongoDB server to add as a member of the replica set.
+        /// The resource must have a TCP endpoint annotation with a specified port.
+        /// </param>
+        /// <param name="configureMember">An optional delegate to configure additional options for the member being added to the replica set.</param>
+        /// <returns>The resource builder for the MongoDB replica set, enabling further configuration.</returns>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the member has already been added to the replica set, if the member resource does not have a TCP
+        /// endpoint annotation, or if the TCP endpoint does not specify a port.
+        /// </exception>
         public IResourceBuilder<MongoDBReplicaSetResource> WithMember(
             IResourceBuilder<MongoDBServerResource> member, 
             Action<MongoDBReplicaSetMemberOptions>? configureMember = null)
@@ -137,6 +166,9 @@ public static class MongoDBReplicaSetExtensions
             return builder;
         }
 
+        /// <summary>
+        /// Adds an administration and development platform for MongoDB replica set to the application model using DbGate.
+        /// </summary>
         public IResourceBuilder<MongoDBReplicaSetResource> WithDbGate(Action<IResourceBuilder<DbGateContainerResource>>? configureContainer = null, string? containerName = null)
         {
             ArgumentNullException.ThrowIfNull(builder);
