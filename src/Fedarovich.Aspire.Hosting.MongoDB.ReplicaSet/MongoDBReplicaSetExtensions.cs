@@ -53,7 +53,9 @@ public static class MongoDBReplicaSetExtensions
             string? connectionString = null;
             resourceBuilder.OnConnectionStringAvailable(async (replicaSet, _, ct) =>
             {
-                connectionString = await replicaSet.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+                var cs = await replicaSet.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+                var builder = new MongoUrlBuilder(cs) { AllowInsecureTls = true };
+                connectionString = builder.ToString();
             });
 
             var healthCheckKey = $"{name}_check";
@@ -327,10 +329,20 @@ public static class MongoDBReplicaSetExtensions
             var healthCheckKey = $"{builder.Resource.Name}_direct_check";
             // cache the client so it is reused on subsequent calls to the health check
             IMongoClient? client = null;
+
+            var healthCheckRegistration = new HealthCheckRegistration(
+                healthCheckKey,
+                sp =>
+                {
+                    client ??= new MongoClient(connectionString ?? throw new InvalidOperationException("Connection string is unavailable"));
+                    return new MongoDBReplicaSetMemberHealthCheck(client);
+                },
+                null,
+                null,
+                null);
+
             builder.ApplicationBuilder.Services.AddHealthChecks()
-                .AddMongoDb(
-                    sp => client ??= new MongoClient(connectionString ?? throw new InvalidOperationException("Connection string is unavailable")),
-                    name: healthCheckKey);
+                .Add(healthCheckRegistration);
 
             builder.WithHealthCheck(healthCheckKey);
 
@@ -350,14 +362,21 @@ public static class MongoDBReplicaSetExtensions
                 async (dbResource, _, ct) => connectionString = await dbResource.GetDirectConnectionStringAsync(ct).ConfigureAwait(false));
 
             var healthCheckKey = $"{builder.Resource.Name}_direct_check";
-            // cache the database client so it is reused on subsequent calls to the health check
-            IMongoDatabase? database = null;
+            // cache the client so it is reused on subsequent calls to the health check
+            IMongoClient? client = null;
+            var healthCheckRegistration = new HealthCheckRegistration(
+                healthCheckKey,
+                sp =>
+                {
+                    client ??= new MongoClient(connectionString ?? throw new InvalidOperationException("Connection string is unavailable"));
+                    return new MongoDBReplicaSetMemberHealthCheck(client, builder.Resource.DatabaseName);
+                },
+                null,
+                null,
+                null);
+            
             builder.ApplicationBuilder.Services.AddHealthChecks()
-                .AddMongoDb(
-                    sp => database ??=
-                        new MongoClient(connectionString ?? throw new InvalidOperationException("Connection string is unavailable"))
-                            .GetDatabase(builder.Resource.DatabaseName),
-                    name: healthCheckKey);
+                .Add(healthCheckRegistration);
 
             builder.WithHealthCheck(healthCheckKey);
 

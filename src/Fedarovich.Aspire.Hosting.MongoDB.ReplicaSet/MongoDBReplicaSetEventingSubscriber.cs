@@ -34,21 +34,25 @@ internal class MongoDBReplicaSetEventingSubscriber(
                     if (replicaSet.Members.Count == 0)
                     {
                         logger.LogCritical("No members were added to the replica set.");
-                        await notification.PublishUpdateAsync(replicaSet, s => s with
-                        {
-                            State = KnownResourceStates.FailedToStart
-                        });
+                        await notification.PublishUpdateAsync(replicaSet, s => s with { State = KnownResourceStates.FailedToStart });
                         return;
                     }
 
-                    var members = await Task.WhenAll(replicaSet.Members.Select(GetMemberInfoAsync)).ConfigureAwait(false);
+                    ReplicaSetMemberInfo[] members;
+                    try
+                    {
+                        members = await Task.WhenAll(replicaSet.Members.Select(GetMemberInfoAsync)).ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogCritical(e, "Failed to retrieve connection strings for replica set members.");
+                        await notification.PublishUpdateAsync(replicaSet, s => s with { State = KnownResourceStates.FailedToStart });
+                        return;
+                    }
 
                     await eventing.PublishAsync(new ConnectionStringAvailableEvent(replicaSet, context.ServiceProvider), ct);
 
-                    await notification.PublishUpdateAsync(replicaSet, s => s with
-                    {
-                        State = KnownResourceStates.Starting
-                    });
+                    await notification.PublishUpdateAsync(replicaSet, s => s with { State = KnownResourceStates.Starting });
 
                     var connectionString = new MongoUrlBuilder(members[0].LocalhostConnectionString)
                     {
@@ -62,7 +66,7 @@ internal class MongoDBReplicaSetEventingSubscriber(
 
                     bool isRunning = false;
 
-                    while (true)
+                    while (!ct.IsCancellationRequested)
                     {
                         if (await InitializeReplicaSetAsync(replicaSet.ReplicaSetName, adminDb, members, ct).ConfigureAwait(false) && !isRunning)
                         {
@@ -87,8 +91,8 @@ internal class MongoDBReplicaSetEventingSubscriber(
                             id,
                             server,
                             options,
-                            containerConnectionStringTask.Result!,
-                            localhostConnectionStringTask.Result!);
+                            containerConnectionStringTask.Result ?? throw new InvalidOperationException("Container Network connection string is unavailable."),
+                            localhostConnectionStringTask.Result ?? throw new InvalidOperationException("Localhost Network connection string is unavailable."));
                     }
                 }, ct);
             }
@@ -127,6 +131,10 @@ internal class MongoDBReplicaSetEventingSubscriber(
             }
 
             logger.LogError(ex, "Failed to initialize the replica set.");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

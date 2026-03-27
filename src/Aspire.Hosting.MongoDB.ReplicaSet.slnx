@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Samples/">
+    <Project Path="../samples/CSharp/MongoDB.MutlipleReplicas/MongoDB.MutlipleReplicas.csproj" />
     <Project Path="../samples/CSharp/MongoDB.SingleReplica.Persistent/MongoDB.SingleReplica.Persistent.csproj" />
     <Project Path="../samples/CSharp/MongoDB.SingleReplica/MongoDB.SingleReplica.csproj" Id="555682ca-43f7-4f93-bfa6-e01d0fd5afcf" />
   </Folder>
