@@ -1,10 +1,10 @@
 ﻿#pragma warning disable ASPIRECERTIFICATES001
 
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using Aspire.Hosting.Lifecycle;
 
 namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 
@@ -38,14 +38,65 @@ public static class MongoDBReplicaSetExtensions
                     Properties = []
                 });
 
+            string? connectionString = null;
+            resourceBuilder.OnConnectionStringAvailable(async (replicaSet, _, ct) =>
+            {
+                connectionString = await replicaSet.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
+
+            var healthCheckKey = $"{replicaSetName}_check";
+            
+            // cache the admin database so it is reused on subsequent calls to the health check
+            IMongoDatabase? adminDatabase = null;
+            var healthCheckRegistration = new HealthCheckRegistration(
+                healthCheckKey,
+                sp =>
+                {
+                    if (adminDatabase is null)
+                    {
+                        var builder = new MongoUrlBuilder(connectionString ?? throw new InvalidOperationException("Connection string is unavailable"))
+                        {
+                            ConnectTimeout = TimeSpan.FromSeconds(10),
+                            ServerSelectionTimeout = TimeSpan.FromSeconds(10)
+                        };
+                        adminDatabase = new MongoClient(builder.ToMongoUrl()).GetDatabase("admin");
+                    }
+                    return new MongoDBReplicaSetHealthCheck(adminDatabase);
+                },
+                null,
+                null,
+                null)
+            {
+                Period = TimeSpan.FromSeconds(10)
+            };
+
+            builder.Services.AddHealthChecks().Add(healthCheckRegistration);
+
+            resourceBuilder.WithHealthCheck(healthCheckKey);
+
             return resourceBuilder;
         }
     }
 
     extension(IResourceBuilder<MongoDBReplicaSetResource> builder)
     {
-        public IResourceBuilder<MongoDBReplicaSetResource> WithMember(IResourceBuilder<MongoDBServerResource> member)
+        public IResourceBuilder<MongoDBReplicaSetResource> WithMember(
+            IResourceBuilder<MongoDBServerResource> member, 
+            Action<MongoDBReplicaSetMemberOptions>? configureMember = null)
         {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(member);
+
+            if (builder.Resource.Members.ContainsKey(member.Resource))
+                throw new ArgumentException($"The member '{member.Resource.Name}' has already been added to the replica set.", nameof(member));
+            
+            var tcpEndpointAnnotation = member.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault(ep => ep.Name == "tcp");
+            if (tcpEndpointAnnotation == null)
+                throw new ArgumentException($"The member resource '{member.Resource.Name}' must have a TCP endpoint annotation.", nameof(member));
+
+            if (tcpEndpointAnnotation.Port == null)
+                throw new ArgumentException($"The TCP endpoint of member resource '{member.Resource.Name}' must have a port specified.", nameof(member));
+
             member
                 .WithArgs("--replSet", builder.Resource.ReplicaSetName)
                 .WithArgs("--bind_ip_all")
@@ -81,7 +132,9 @@ public static class MongoDBReplicaSetExtensions
             builder.WaitForStart(member);
             builder.WithAnnotation(new ConnectionStringRedirectAnnotation(member.Resource));
 
-            builder.Resource.AddMember(member.Resource);
+            var options = new MongoDBReplicaSetMemberOptions();
+            configureMember?.Invoke(options);
+            builder.Resource.AddMember(member.Resource, options);
 
             return builder;
         }

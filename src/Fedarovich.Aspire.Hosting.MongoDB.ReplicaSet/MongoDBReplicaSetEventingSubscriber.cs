@@ -1,17 +1,24 @@
 ﻿using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 
 namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 
-internal class MongoDBReplicaSetEventingSubscriber(ResourceNotificationService notification) : IDistributedApplicationEventingSubscriber
+internal class MongoDBReplicaSetEventingSubscriber(
+    ResourceNotificationService notification,
+    ILogger<MongoDBReplicaSetEventingSubscriber> logger
+) : IDistributedApplicationEventingSubscriber
 {
     public Task SubscribeAsync(
         IDistributedApplicationEventing eventing,
         DistributedApplicationExecutionContext context,
         CancellationToken cancellationToken)
     {
-        eventing.Subscribe<BeforeStartEvent>(async (@event, ct) =>
+        var containerNetworkContext = new ValueProviderContext { ExecutionContext = context, Network = KnownNetworkIdentifiers.DefaultAspireContainerNetwork };
+        var localhostNetworkContext = new ValueProviderContext { ExecutionContext = context, Network = KnownNetworkIdentifiers.LocalhostNetwork };
+
+        eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
         {
             foreach (var replicaSet in @event.Model.Resources.OfType<MongoDBReplicaSetResource>())
             {
@@ -24,9 +31,9 @@ internal class MongoDBReplicaSetEventingSubscriber(ResourceNotificationService n
 
                     await notification.WaitForDependenciesAsync(replicaSet, ct);
 
-                    if (replicaSet.Members is [])
+                    if (replicaSet.Members.Count == 0)
                     {
-                        //@event.Logger.LogError("No members were added to the replica set.");
+                        logger.LogCritical("No members were added to the replica set.");
                         await notification.PublishUpdateAsync(replicaSet, s => s with
                         {
                             State = KnownResourceStates.FailedToStart
@@ -34,22 +41,16 @@ internal class MongoDBReplicaSetEventingSubscriber(ResourceNotificationService n
                         return;
                     }
 
+                    var members = await Task.WhenAll(replicaSet.Members.Select(GetMemberInfoAsync)).ConfigureAwait(false);
+
+                    await eventing.PublishAsync(new ConnectionStringAvailableEvent(replicaSet, context.ServiceProvider), ct);
+
                     await notification.PublishUpdateAsync(replicaSet, s => s with
                     {
-                        State = "Initializing replica set..."
+                        State = KnownResourceStates.Starting
                     });
 
-                    var containerNetworkContext = new ValueProviderContext { Network = KnownNetworkIdentifiers.DefaultAspireContainerNetwork };
-                    var containerConnectionStrings = await Task.WhenAll(
-                        replicaSet.Members.Select(r => r.ConnectionStringExpression.GetValueAsync(containerNetworkContext, ct).AsTask())).ConfigureAwait(false);
-
-                    var localhostNetworkContext = new ValueProviderContext { Network = KnownNetworkIdentifiers.LocalhostNetwork };
-                    var localhostConnectionStrings = await Task.WhenAll(
-                        replicaSet.Members.Select(r => r.ConnectionStringExpression.GetValueAsync(localhostNetworkContext, ct).AsTask())).ConfigureAwait(false);
-
-                    var connectionStrings = containerConnectionStrings.Zip(localhostConnectionStrings, (container, localhost) => (container, localhost))!;
-
-                    var connectionString = new MongoUrlBuilder(connectionStrings.FirstOrDefault().localhost)
+                    var connectionString = new MongoUrlBuilder(members[0].LocalhostConnectionString)
                     {
                         AllowInsecureTls = true,
                         UseTls = true,
@@ -59,28 +60,40 @@ internal class MongoDBReplicaSetEventingSubscriber(ResourceNotificationService n
                     var mongoClient = new MongoClient(connectionString.ToMongoUrl());
                     var adminDb = mongoClient.GetDatabase("admin");
 
+                    bool isRunning = false;
+
                     while (true)
                     {
-                        if (await InitializeReplicaSetAsync(replicaSet.ReplicaSetName, adminDb, connectionStrings, ct).ConfigureAwait(false))
+                        if (await InitializeReplicaSetAsync(replicaSet.ReplicaSetName, adminDb, members, ct).ConfigureAwait(false) && !isRunning)
                         {
                             await notification.PublishUpdateAsync(replicaSet, s => s with
                             {
                                 State = KnownResourceStates.Running,
                                 StartTimeStamp = DateTime.UtcNow
                             });
-                            break;
+                            isRunning = true;
                         }
 
-                        await Task.Delay(5000, ct);
+                        await Task.Delay(10_000, ct);
+                    }
+
+                    async Task<ReplicaSetMemberInfo> GetMemberInfoAsync(KeyValuePair<MongoDBServerResource, MongoDBReplicaSetMemberOptions> pair, int id)
+                    {
+                        var (server, options) = pair;
+                        var containerConnectionStringTask = server.ConnectionStringExpression.GetValueAsync(containerNetworkContext, ct).AsTask();
+                        var localhostConnectionStringTask = server.ConnectionStringExpression.GetValueAsync(localhostNetworkContext, ct).AsTask();
+                        await Task.WhenAll(containerConnectionStringTask, localhostConnectionStringTask).ConfigureAwait(false);
+                        return new ReplicaSetMemberInfo(
+                            id,
+                            server,
+                            options,
+                            containerConnectionStringTask.Result!,
+                            localhostConnectionStringTask.Result!);
                     }
                 }, ct);
-
-                await notification.PublishUpdateAsync(replicaSet, s => s with
-                {
-                    State = KnownResourceStates.Starting,
-                    StartTimeStamp = DateTime.UtcNow
-                });
             }
+
+            return Task.CompletedTask;
         });
 
         return Task.CompletedTask;
@@ -89,7 +102,7 @@ internal class MongoDBReplicaSetEventingSubscriber(ResourceNotificationService n
     private async Task<bool> InitializeReplicaSetAsync(
         string replicaSetName, 
         IMongoDatabase adminDb, 
-        IEnumerable<(string Container, string Localhost)> connectionStrings,
+        ReplicaSetMemberInfo[] members,
         CancellationToken cancellationToken)
     {
         try
@@ -99,7 +112,7 @@ internal class MongoDBReplicaSetEventingSubscriber(ResourceNotificationService n
                 ["replSetInitiate"] = new BsonDocument
                 {
                     ["_id"] = replicaSetName,
-                    ["members"] = new BsonArray(connectionStrings.Select(ToMember))
+                    ["members"] = new BsonArray(members.Select(ToBson))
                 }
             };
             await adminDb.RunCommandAsync<BsonDocument>(initiateCmd, cancellationToken: cancellationToken);
@@ -109,30 +122,86 @@ internal class MongoDBReplicaSetEventingSubscriber(ResourceNotificationService n
         {
             if (ex.CodeName != "AlreadyInitialized")
             {
+                logger.LogDebug("The replica set is already initialized.");
                 return true;
             }
+
+            logger.LogError(ex, "Failed to initialize the replica set.");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // TODO: Log
+            logger.LogError(ex, "An unexpected error occurred while initializing the replica set.");
         }
 
         return false;
 
-        static BsonDocument ToMember((string Container, string Localhost) connectionStrings, int index)
+        static BsonDocument ToBson(ReplicaSetMemberInfo memberInfo)
         {
-            var containerUrl = new MongoUrl(connectionStrings.Container);
-            var localhostUrl = new MongoUrl(connectionStrings.Localhost);
+            var options = memberInfo.Options;
 
-            return new BsonDocument
+            var containerUrl = new MongoUrl(memberInfo.ContainerConnectionString);
+            var localhostUrl = new MongoUrl(memberInfo.LocalhostConnectionString);
+
+            var horizons = new BsonDocument
             {
-                ["_id"] = index,
-                ["host"] = $"{containerUrl.Server.Host}:{containerUrl.Server.Port}",
-                ["horizons"] = new BsonDocument
-                {
-                    ["localhost"] = $"{localhostUrl.Server.Host}:{localhostUrl.Server.Port}"
-                }
+                ["localhost"] = $"{localhostUrl.Server.Host}:{localhostUrl.Server.Port}"
             };
+
+            foreach (var serverAddress in options.AdditionalServerAddresses)      
+            {
+                horizons.Add(serverAddress.Host, $"{serverAddress.Host}:{serverAddress.Port}");
+            }
+
+            var memberConfig = new BsonDocument
+            {
+                ["_id"] = memberInfo.Id,
+                ["host"] = $"{containerUrl.Server.Host}:{containerUrl.Server.Port}",
+                ["horizons"] = horizons
+            };
+
+            if (options.ArbiterOnly)
+            {
+                memberConfig["arbiterOnly"] = true;
+            }
+
+            if (!options.BuildIndexes)
+            {
+                memberConfig["buildIndexes"] = false;
+            }
+
+            if (options.Hidden)
+            {
+                memberConfig["hidden"] = true;
+            }
+
+            if (options.Priority.HasValue)
+            {
+                memberConfig["priority"] = options.Priority.Value;
+            }
+
+            if (options.SecondaryDelaySecs > 0)
+            {
+                memberConfig["secondaryDelaySecs"] = options.SecondaryDelaySecs;
+            }
+
+            if (options.Votes != 1)
+            {
+                memberConfig["votes"] = options.Votes;
+            }
+
+            if (options.Tags.Count > 0)
+            {
+                memberConfig["tags"] = new BsonDocument(options.Tags.Select(kv => new KeyValuePair<string, object>(kv.Key, kv.Value)));
+            }
+
+            return memberConfig;
         }
     }
+
+    private record ReplicaSetMemberInfo(
+        int Id,
+        MongoDBServerResource Server, 
+        MongoDBReplicaSetMemberOptions Options, 
+        string ContainerConnectionString, 
+        string LocalhostConnectionString);
 }
