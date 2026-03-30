@@ -12,7 +12,18 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Description>Adds support for creating MongoDB replica sets in Aspire hosting environment.</Description>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting" Version="13.2.0" />
