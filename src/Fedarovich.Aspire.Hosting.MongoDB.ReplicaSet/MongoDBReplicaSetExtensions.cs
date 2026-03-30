@@ -111,7 +111,7 @@ public static class MongoDBReplicaSetExtensions
         }
     }
 
-    extension(IResourceBuilder<MongoDBReplicaSetResource> builder)
+    extension<T>(IResourceBuilder<T> builder) where T : MongoDBReplicaSetResource
     {
         /// <summary>
         /// Adds a MongoDB server resource as a member of the replica set, applying optional member-specific  configuration.
@@ -130,7 +130,7 @@ public static class MongoDBReplicaSetExtensions
         /// Thrown if the member has already been added to the replica set, if the member resource does not have a TCP
         /// endpoint annotation, or if the TCP endpoint does not specify a port.
         /// </exception>
-        public IResourceBuilder<MongoDBReplicaSetResource> WithMember(
+        public IResourceBuilder<T> WithMember(
             IResourceBuilder<MongoDBServerResource> member, 
             Action<MongoDBReplicaSetMemberOptions>? configureMember = null)
         {
@@ -190,7 +190,7 @@ public static class MongoDBReplicaSetExtensions
         /// <summary>
         /// Adds an administration and development platform for MongoDB replica set to the application model using DbGate.
         /// </summary>
-        public IResourceBuilder<MongoDBReplicaSetResource> WithDbGate(Action<IResourceBuilder<DbGateContainerResource>>? configureContainer = null, string? containerName = null)
+        public IResourceBuilder<T> WithDbGate(Action<IResourceBuilder<DbGateContainerResource>>? configureContainer = null, string? containerName = null)
         {
             ArgumentNullException.ThrowIfNull(builder);
 
