@@ -17,5 +17,8 @@
       <Deploy />
     </Project>
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="../README.md" />
+  </Folder>
   <Project Path="Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.csproj" Id="c85c414d-9eff-460f-86ae-a8f78b7c5700" />
 </Solution>
