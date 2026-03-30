@@ -1,0 +1,23 @@
+{
+  "appHost": {
+    "path": "apphost.ts",
+    "language": "typescript/nodejs"
+  },
+  "sdk": {
+    "version": "13.2.0"
+  },
+  "channel": "stable",
+  "profiles": {
+    "https": {
+      "applicationUrl": "https://localhost:21283;http://localhost:26241",
+      "environmentVariables": {
+        "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:34206",
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:39534"
+      }
+    }
+  },
+  "packages": {
+    "Aspire.Hosting.MongoDB": "13.2.0",
+    "Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet": "../../../src/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.csproj"
+  }
+}

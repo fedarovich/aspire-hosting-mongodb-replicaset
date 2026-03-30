@@ -1,10 +1,21 @@
 <Solution>
-  <Folder Name="/Samples/">
+  <Folder Name="/Samples/" />
+  <Folder Name="/Samples/CSharp/">
     <Project Path="../samples/CSharp/MongoDB.MutlipleReplicas/MongoDB.MutlipleReplicas.csproj" />
     <Project Path="../samples/CSharp/MongoDB.SingleReplica.Persistent/MongoDB.SingleReplica.Persistent.csproj" />
     <Project Path="../samples/CSharp/MongoDB.SingleReplica/MongoDB.SingleReplica.csproj" Id="555682ca-43f7-4f93-bfa6-e01d0fd5afcf" />
     <Project Path="../samples/CSharp/Percona.MutlipleReplicas/Percona.MutlipleReplicas.csproj" />
     <Project Path="../samples/CSharp/Percona.SingleReplica/Percona.SingleReplica.csproj" />
+  </Folder>
+  <Folder Name="/Samples/TypeScript/">
+    <Project Path="../samples/TypeScript/MongoDB.SingleReplica/MongoDB.SingleReplica.esproj">
+      <Build />
+      <Deploy />
+    </Project>
+    <Project Path="../samples/TypeScript/Percona.SingleReplica/Percona.SingleReplica.esproj">
+      <Build />
+      <Deploy />
+    </Project>
   </Folder>
   <Project Path="Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.csproj" Id="c85c414d-9eff-460f-86ae-a8f78b7c5700" />
 </Solution>

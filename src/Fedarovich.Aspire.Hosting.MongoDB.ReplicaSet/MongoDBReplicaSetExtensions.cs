@@ -1,4 +1,5 @@
 ﻿#pragma warning disable ASPIRECERTIFICATES001
+#pragma warning disable ASPIREATS001
 
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,7 @@ public static class MongoDBReplicaSetExtensions
         /// <para>Parameter resource builder for the content of MongoDB key file, which is used for mutual replica set member authentication.</para>
         /// <para>If <see langword="null"/>, a new resource with a random key will be generated and saved into user secrets.</para>
         /// </param>
+        [AspireExport("addMongoDBReplicaSet", Description = "Adds a MongoDB replica set resource to the application model.")]
         public IResourceBuilder<MongoDBReplicaSetResource> AddMongoDBReplicaSet(string name,
             string replicaSetName = "rs0",
             IResourceBuilder<ParameterResource>? keyFileParameter = null)
@@ -99,6 +101,7 @@ public static class MongoDBReplicaSetExtensions
         /// <param name="userName">A parameter that contains the MongoDb server username, or <see langword="null"/> to use a default value.</param>
         /// <param name="password">A parameter that contains the MongoDb server password, or <see langword="null"/> to use a generated password.</param>
         /// <returns></returns>
+        [AspireExport("addPerconaServerForMongoDB", Description = "Adds a MongoDB resource to the application model using Percona Server for MongoDB.")]
         public IResourceBuilder<MongoDBServerResource> AddPerconaServerForMongoDB(string name,
             int? port = null,
             IResourceBuilder<ParameterResource>? userName = null,
@@ -130,6 +133,7 @@ public static class MongoDBReplicaSetExtensions
         /// Thrown if the member has already been added to the replica set, if the member resource does not have a TCP
         /// endpoint annotation, or if the TCP endpoint does not specify a port.
         /// </exception>
+        [AspireExport("withMember", Description = "Adds a MongoDB server resource as a member of the replica set, applying optional member-specific configuration.")]
         public IResourceBuilder<T> WithMember(
             IResourceBuilder<MongoDBServerResource> member, 
             Action<MongoDBReplicaSetMemberOptions>? configureMember = null)
@@ -190,6 +194,7 @@ public static class MongoDBReplicaSetExtensions
         /// <summary>
         /// Adds an administration and development platform for MongoDB replica set to the application model using DbGate.
         /// </summary>
+        [AspireExport("withDbGate", Description = "Adds an administration and development platform for MongoDB replica set to the application model using DbGate.")]
         public IResourceBuilder<T> WithDbGate(Action<IResourceBuilder<DbGateContainerResource>>? configureContainer = null, string? containerName = null)
         {
             ArgumentNullException.ThrowIfNull(builder);

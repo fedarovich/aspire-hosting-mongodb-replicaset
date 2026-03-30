@@ -1,8 +1,11 @@
-﻿namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
+﻿#pragma warning disable ASPIREATS001
+
+namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 
 /// <summary>
 /// Represents the configuration options for a member of a MongoDB replica set.
 /// </summary>
+[AspireDto]
 public class MongoDBReplicaSetMemberOptions
 {
     /// <summary>

@@ -416,3 +416,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Aspire TS .modules/ directory and dist/ directory
+samples/TypeScript/**/.modules/
+samples/TypeScript/**/dist/
