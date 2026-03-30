@@ -3,6 +3,7 @@
     <Project Path="../samples/CSharp/MongoDB.MutlipleReplicas/MongoDB.MutlipleReplicas.csproj" />
     <Project Path="../samples/CSharp/MongoDB.SingleReplica.Persistent/MongoDB.SingleReplica.Persistent.csproj" />
     <Project Path="../samples/CSharp/MongoDB.SingleReplica/MongoDB.SingleReplica.csproj" Id="555682ca-43f7-4f93-bfa6-e01d0fd5afcf" />
+    <Project Path="../samples/CSharp/Percona.SingleReplica/Percona.SingleReplica.csproj" />
   </Folder>
   <Project Path="Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.csproj" Id="c85c414d-9eff-460f-86ae-a8f78b7c5700" />
 </Solution>

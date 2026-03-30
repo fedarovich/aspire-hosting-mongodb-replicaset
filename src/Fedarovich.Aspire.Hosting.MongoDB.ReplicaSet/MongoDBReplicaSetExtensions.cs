@@ -13,9 +13,6 @@ namespace Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 /// </summary>
 public static class MongoDBReplicaSetExtensions
 {
-    private const int UserId = 999;
-    private const int GroupId = 999;
-
     extension(IDistributedApplicationBuilder builder)
     {
         /// <summary>
@@ -89,6 +86,28 @@ public static class MongoDBReplicaSetExtensions
             resourceBuilder.WithHealthCheck(healthCheckKey);
 
             return resourceBuilder;
+        }
+
+        /// <summary>
+        /// Adds a MongoDB resource to the application model using Percona Server for MongoDB. A container is used for local development.
+        /// </summary>
+        /// <remarks>
+        /// <para>This version of the package defaults to the <c>8.0</c> tag of the <c>percona/percona-server-mongodb</c> container image.</para>
+        /// </remarks>
+        /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+        /// <param name="port">The host port for MongoDB.</param>
+        /// <param name="userName">A parameter that contains the MongoDb server username, or <see langword="null"/> to use a default value.</param>
+        /// <param name="password">A parameter that contains the MongoDb server password, or <see langword="null"/> to use a generated password.</param>
+        /// <returns></returns>
+        public IResourceBuilder<MongoDBServerResource> AddPerconaServerForMongoDB(string name,
+            int? port = null,
+            IResourceBuilder<ParameterResource>? userName = null,
+            IResourceBuilder<ParameterResource>? password = null)
+        {
+            return builder.AddMongoDB(name, port, userName, password)
+                .WithImage(MongoDBContainerImageTags.PerconaImage, MongoDBContainerImageTags.PerconaTag)
+                .WithImageRegistry(MongoDBContainerImageTags.PerconaRegistry)
+                .WithAnnotation(new MongoDBProcessUserAnnotation(1001, 0));
         }
     }
 
@@ -221,28 +240,39 @@ public static class MongoDBReplicaSetExtensions
 
     extension(IResourceBuilder<MongoDBServerResource> builder)
     {
-        private IResourceBuilder<MongoDBServerResource> WithKeyFile(ParameterResource keyFileResource) => builder
-            .WithContainerFiles(
-                "/keys",
-                async (context, ct) =>
-                {
-                    var keyFileContent = await keyFileResource.GetValueAsync(ct);
-                    var keyFile = new ContainerFile()
+        private IResourceBuilder<MongoDBServerResource> WithKeyFile(ParameterResource keyFileResource)
+        {
+            var processUser = builder.Resource.TryGetLastAnnotation<MongoDBProcessUserAnnotation>(out var annotation)
+                ? annotation
+                : MongoDBProcessUserAnnotation.Default;
+
+            return builder
+                .WithContainerFiles(
+                    "/keys",
+                    async (context, ct) =>
                     {
-                        Contents = keyFileContent,
-                        Name = "keyfile",
-                        Owner = UserId,
-                        Group = GroupId,
-                        Mode = UnixFileMode.UserRead
-                    };
-                    return [keyFile];
-                },
-                UserId,
-                GroupId)
-            .WithArgs("--keyFile", "/keys/keyfile");
+                        var keyFileContent = await keyFileResource.GetValueAsync(ct);
+                        var keyFile = new ContainerFile()
+                        {
+                            Contents = keyFileContent,
+                            Name = "keyfile",
+                            Owner = processUser.UserId,
+                            Group = processUser.GroupId,
+                            Mode = UnixFileMode.UserRead
+                        };
+                        return [keyFile];
+                    },
+                    processUser. UserId,
+                    processUser.GroupId)
+                .WithArgs("--keyFile", "/keys/keyfile");
+        }
 
         private IResourceBuilder<MongoDBServerResource> WithTls(MongoDBReplicaSetResource replicaSet)
         {
+            var processUser = builder.Resource.TryGetLastAnnotation<MongoDBProcessUserAnnotation>(out var annotation)
+                ? annotation
+                : MongoDBProcessUserAnnotation.Default;
+
             return builder
                 .OnInitializeResource((_, _, _) =>
                 {
@@ -288,15 +318,15 @@ public static class MongoDBReplicaSetExtensions
                         {
                             Name = "server-cert.pem",
                             Contents = stringBuilder.ToString(),
-                            Owner = 999,
-                            Group = 999,
+                            Owner = processUser.UserId,
+                            Group = processUser.GroupId,
                             Mode = UnixFileMode.UserRead
                         };
                         
                         return Task.FromResult<IEnumerable<ContainerFileSystemItem>>([certificateFile]);
                     },
-                    UserId,
-                    GroupId)
+                    processUser.UserId,
+                    processUser.GroupId)
                 .WithArgs(
                     "--tlsMode", "requireTLS",
                     "--tlsCertificateKeyFile", "/cert/server-cert.pem",
