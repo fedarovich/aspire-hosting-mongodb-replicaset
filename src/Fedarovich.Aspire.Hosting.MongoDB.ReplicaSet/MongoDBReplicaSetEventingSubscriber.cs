@@ -84,15 +84,33 @@ internal class MongoDBReplicaSetEventingSubscriber(
                     async Task<ReplicaSetMemberInfo> GetMemberInfoAsync(KeyValuePair<MongoDBServerResource, MongoDBReplicaSetMemberOptions> pair, int id)
                     {
                         var (server, options) = pair;
+
+                        var aliasAnnotations = server.Annotations.OfType<ContainerNetworkAliasAnnotation>().ToArray();
+                        var aliasesTask = aliasAnnotations.Length > 0
+                            ? Task.WhenAll(aliasAnnotations.Select(a => GetAliasAsync(server, a)))
+                            : Task.FromResult(Array.Empty<MongoServerAddress>());
                         var containerConnectionStringTask = server.ConnectionStringExpression.GetValueAsync(containerNetworkContext, ct).AsTask();
                         var localhostConnectionStringTask = server.ConnectionStringExpression.GetValueAsync(localhostNetworkContext, ct).AsTask();
-                        await Task.WhenAll(containerConnectionStringTask, localhostConnectionStringTask).ConfigureAwait(false);
+
+                        await Task.WhenAll(containerConnectionStringTask, localhostConnectionStringTask, aliasesTask).ConfigureAwait(false);
+                        
                         return new ReplicaSetMemberInfo(
                             id,
                             server,
                             options,
                             containerConnectionStringTask.Result ?? throw new InvalidOperationException("Container Network connection string is unavailable."),
-                            localhostConnectionStringTask.Result ?? throw new InvalidOperationException("Localhost Network connection string is unavailable."));
+                            localhostConnectionStringTask.Result ?? throw new InvalidOperationException("Localhost Network connection string is unavailable."),
+                            aliasesTask.Result);
+                    }
+
+                    async Task<MongoServerAddress> GetAliasAsync(MongoDBServerResource server, ContainerNetworkAliasAnnotation annotation)
+                    {
+                        var portAsString = await server.Port.GetValueAsync(new ValueProviderContext { ExecutionContext = context, Network = annotation.Network }, ct);
+                        if (!int.TryParse(portAsString, out int port))
+                        {
+                            throw new InvalidOperationException($"The port value '{portAsString}' for server '{server.Name}' is not a valid integer.");
+                        }
+                        return new MongoServerAddress(annotation.Alias, port);
                     }
                 }, ct);
             }
@@ -155,6 +173,11 @@ internal class MongoDBReplicaSetEventingSubscriber(
                 ["localhost"] = $"{localhostUrl.Server.Host}:{localhostUrl.Server.Port}"
             };
 
+            foreach (var alias in memberInfo.Aliases)
+            {
+                horizons.Add(alias.Host, $"{alias.Host}:{alias.Port}");
+            }
+
             foreach (var serverAddress in options.AdditionalServerAddresses)      
             {
                 horizons.Add(serverAddress.Host, $"{serverAddress.Host}:{serverAddress.Port}");
@@ -208,8 +231,9 @@ internal class MongoDBReplicaSetEventingSubscriber(
 
     private record ReplicaSetMemberInfo(
         int Id,
-        MongoDBServerResource Server, 
-        MongoDBReplicaSetMemberOptions Options, 
-        string ContainerConnectionString, 
-        string LocalhostConnectionString);
+        MongoDBServerResource Server,
+        MongoDBReplicaSetMemberOptions Options,
+        string ContainerConnectionString,
+        string LocalhostConnectionString,
+        IReadOnlyList<MongoServerAddress> Aliases);
 }
