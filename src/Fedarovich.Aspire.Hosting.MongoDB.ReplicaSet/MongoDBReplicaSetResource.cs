@@ -10,8 +10,7 @@ public class MongoDBReplicaSetResource(string name, string replicaSetName, Param
     IResourceWithEnvironment, 
     IResourceWithArgs,
     IResourceWithWaitSupport,
-    IResourceWithConnectionString,
-    IResourceWithServiceDiscovery
+    IResourceWithConnectionString
 {
     private readonly OrderedDictionary<MongoDBServerResource, MongoDBReplicaSetMemberOptions> _members = new();
 
