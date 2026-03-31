@@ -44,6 +44,10 @@ mongoServer.AddDatabase("TestMongoDB", "TestDB");
 var mongoRS = builder.AddMongoDBReplicaSet("TestMongoRS")
     .WithMember(mongoServer);
 
+// Reference the replica set from other resources
+var webApiLocal = builder.AddProject<WebApi>("WebApi-Local")
+    .WithReference(mongoRs);
+
 ```
 
 The created `MongoDBReplicaSet` resource provides the connection string and can be used as an argument of `.WithReference()` extension method.
@@ -96,6 +100,11 @@ var mongoRs = builder.AddMongoDBReplicaSet("TestMongoRS")
 
 You will also need to call `WithCertificateAuthorityCollection(mongoCertificateAuthority)` on the resources accessing the replica set, 
 to make the certificate authority collection available in them and allow them to trust the MongoDB servers.
+However, note the `ProjectResource` does not really support `WithCertificateAuthorityCollection` (it's a no-op),
+so for such resources you can do one of the following:
++ Add the certificate to the trusted root certificate authorities store of the host machine for your user.
++ Set `MongoClientSettings.AllowInsecureTls = true` in the client code.
++ Set `MongoClientSettings.SslSettings.ServerCertificateValidationCallback` to perform a custom certificate validation in the client code. See the `samples` folder for an example of how you can do that.
 
 > [!NOTE]
 > In case you use persistent MongoDB server instances, you should ensure that the same TLS certificate is used for them across restarts.

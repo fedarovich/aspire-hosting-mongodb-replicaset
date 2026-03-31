@@ -1,4 +1,5 @@
 ﻿using Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
+using Projects;
 
 #pragma warning disable ASPIRECERTIFICATES001
 
@@ -27,5 +28,14 @@ var mongoRs = builder.AddMongoDBReplicaSet("TestMongoRS")
     .WithHttpsCertificate(mongoCertificate)
     .WithCertificateAuthorityCollection(mongoCertificateAuthority)
     .WithDbGate();
+
+var webApiLocal = builder.AddProject<WebApi>("WebApi-Local")
+    .WithReference(mongoRs)
+    .WithCertificateTrustScope(CertificateTrustScope.Append)
+    .WithCertificateTrustConfiguration(context =>
+    {
+        context.EnvironmentVariables[$"{mongoRs.Resource.Name.ToUpperInvariant()}_CERTIFICATE_THUMBPRINT"] = mongoCertificate.Thumbprint;
+        return Task.CompletedTask;
+    });
 
 builder.Build().Run();

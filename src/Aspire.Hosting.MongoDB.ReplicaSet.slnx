@@ -6,6 +6,8 @@
     <Project Path="../samples/CSharp/MongoDB.SingleReplica/MongoDB.SingleReplica.csproj" Id="555682ca-43f7-4f93-bfa6-e01d0fd5afcf" />
     <Project Path="../samples/CSharp/Percona.MutlipleReplicas/Percona.MutlipleReplicas.csproj" />
     <Project Path="../samples/CSharp/Percona.SingleReplica/Percona.SingleReplica.csproj" />
+    <Project Path="../samples/CSharp/ServiceDefaults/ServiceDefaults.csproj" Id="53990c34-75b9-4246-883b-47fa2cd527db" />
+    <Project Path="../samples/CSharp/WebApi/WebApi.csproj" />
   </Folder>
   <Folder Name="/Samples/TypeScript/">
     <Project Path="../samples/TypeScript/MongoDB.SingleReplica/MongoDB.SingleReplica.esproj">
