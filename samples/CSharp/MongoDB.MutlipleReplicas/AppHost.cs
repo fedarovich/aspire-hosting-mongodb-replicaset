@@ -83,4 +83,14 @@ var goContainer = builder.AddDockerfile("Go-Container", "../../Go/WebApi")
     .WithReference(mongoRs)
     .WithCertificateAuthorityCollection(mongoCertificateAuthority);
 
+var javaContainer = builder.AddDockerfile("Java-Container", "../../Java/WebApi")
+    .WithHttpEndpoint(targetPort: 8080)
+    .WithReference(mongoRs)
+    .WithCertificateAuthorityCollection(mongoCertificateAuthority)
+    .WithCertificateTrustConfiguration(context =>
+    {
+        context.EnvironmentVariables["MONGO_CA_BUNDLE_PATH"] = context.CertificateBundlePath;
+        return Task.CompletedTask;
+    });
+
 builder.Build().Run();
