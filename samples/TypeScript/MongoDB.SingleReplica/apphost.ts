@@ -35,4 +35,8 @@ const pythonContainer = await builder.addDockerfile('Python-Container', '../../P
     .withHttpEndpoint({ targetPort: 8000 })
     .withReference(mongoRS);
 
+const goContainer = await builder.addDockerfile('Go-Container', '../../Go/WebApi')
+    .withHttpEndpoint({ targetPort: 8080 })
+    .withReference(mongoRS);
+
 await builder.build().run();

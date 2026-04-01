@@ -64,4 +64,9 @@ var pythonContainer = builder.AddDockerfile("Python-Container", "../../Python/We
     .WithReference(mongoRs)
     .WithCertificateAuthorityCollection(mongoCertificateAuthority);
 
+var goContainer = builder.AddDockerfile("Go-Container", "../../Go/WebApi")
+    .WithHttpEndpoint(targetPort: 8080)
+    .WithReference(mongoRs)
+    .WithCertificateAuthorityCollection(mongoCertificateAuthority);
+
 builder.Build().Run();
