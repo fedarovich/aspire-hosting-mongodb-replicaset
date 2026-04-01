@@ -1,8 +1,6 @@
 # MongoDB Replica Set Support for Aspire
 
-[![nuget](https://img.shields.io/nuget/v/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.svg?label=nuget)](https://www.nuget.org/packages/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet)
-
-This project provides support of MongoDB replica sets in Aspire.
+This project provides support of MongoDB replica sets in [Aspire](https://aspire.dev).
 
 It uses MongoDB horizons feature to correctly handle replica set configuration and make it available from both Aspire internal container network and host machine.
 The replica set correctly handles container restarts and Aspire process restarts.
@@ -19,7 +17,7 @@ Both original MongoDB Server and Percona Server for MongoDB are supported, givin
 
 ## Installation
 
-Install the package from NuGet:
+Install the package from [![nuget](https://img.shields.io/nuget/v/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.svg?label=NuGet)](https://www.nuget.org/packages/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet):
 
 ```bash
 dotnet add package Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet
@@ -56,6 +54,26 @@ The created `MongoDBReplicaSet` resource provides the connection string and can 
 > As replica set horizons require TLS, the MongoDB server will be configured to use ASP.NET core development certificate by default.
 > As an alternative, you can provide your own TLS certificate and configure the server to use it.
 > Please, see the multiple instance replica set sample below for more details.
+
+You can also do it with TypeScript AppHost:
+```typescript
+
+// Add MongoDB server with a fixed port
+const mongoServer = await builder.addMongoDB('TestMongo', { port: 27017 });
+
+// Add database to the server
+await mongoServer.addDatabase('TestMongoDB');
+
+// Add replica set with the server as a member
+const mongoRS = await builder.addMongoDBReplicaSet('TestMongoRS')
+    .withMember(mongoServer);
+
+// Reference the replica set from other resources
+const nodeLocal = await builder.addJavaScriptApp('NodeJS-Local', '../WebApi')
+    .withHttpEndpoint({ targetPort: 3000 })
+    .withReference(mongoRS);
+
+```
 
 ## Creating a Multiple Instance Replica Set
 
@@ -94,8 +112,13 @@ var mongoRs = builder.AddMongoDBReplicaSet("TestMongoRS")
     .WithMember(mongoServer2)
     .WithMember(mongoServer3)
     .WithHttpsCertificate(mongoCertificate)
-    .WithCertificateAuthorityCollection(mongoCertificateAuthority)
-    .WithDbGate();
+    .WithCertificateAuthorityCollection(mongoCertificateAuthority);
+
+// Reference the replica set from other resources
+var nodeContainer = builder.AddDockerfile("NodeJS-Container", "../../TypeScript/WebApi")
+    .WithHttpEndpoint(targetPort: 3000)
+    .WithReference(mongoRs)
+    .WithCertificateAuthorityCollection(mongoCertificateAuthority);
 ```
 
 You will also need to call `WithCertificateAuthorityCollection(mongoCertificateAuthority)` on the resources accessing the replica set, 
@@ -109,6 +132,7 @@ so for such resources you can do one of the following:
 > [!NOTE]
 > In case you use persistent MongoDB server instances, you should ensure that the same TLS certificate is used for them across restarts.
 > In order to achieve that, you can store the self-signed certificate in a `ParameterResource` and use it to configure the servers.
+> Alternatively, you can install the certificate to your user's store and configure the resources to use it.
 
 ## Using Percona Server for MongoDB
 
@@ -129,3 +153,6 @@ var mongoRS = builder.AddMongoDBReplicaSet("TestMongoRS")
     .WithMember(mongoServer)
     .WithDbGate();
 ```
+
+# Samples
+The `samples` folder in this repository contains sample projects demonstrating how to use this package to create MongoDB replica sets with different configurations.
