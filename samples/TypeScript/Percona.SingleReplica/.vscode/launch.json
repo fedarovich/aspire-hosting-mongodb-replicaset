@@ -9,6 +9,6 @@
             "command": "aspire run",
             "name": "Run",
             "request": "launch"
-        },
+        }
     ]
 }

@@ -6,7 +6,7 @@
     "configurations": [
         {
             "type": "node-terminal",
-            "command": "aspire run",
+            "command": "npm start",
             "name": "Run",
             "request": "launch"
         }

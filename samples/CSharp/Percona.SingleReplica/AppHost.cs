@@ -20,4 +20,12 @@ var dotNetLocal = builder.AddProject<WebApi>("DotNet-Local")
 var dotNetContainer = builder.AddDockerfileForProject<WebApi>("DotNet-Container")
     .WithReference(mongoRs);
 
+var nodeLocal = builder.AddJavaScriptApp("NodeJS-Local", "../../TypeScript/WebApi")
+    .WithHttpEndpoint(targetPort: 3000)
+    .WithReference(mongoRs);
+
+var nodeContainer = builder.AddDockerfile("NodeJS-Container", "../../TypeScript/WebApi")
+    .WithHttpEndpoint(targetPort: 3000)
+    .WithReference(mongoRs);
+
 builder.Build().Run();

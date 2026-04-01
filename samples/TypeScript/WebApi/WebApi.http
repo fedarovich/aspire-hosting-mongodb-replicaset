@@ -1,0 +1,6 @@
+@WebApi_HostAddress = http://localhost:3000
+
+GET {{WebApi_HostAddress}}/mongo/hello
+Accept: application/json
+
+###

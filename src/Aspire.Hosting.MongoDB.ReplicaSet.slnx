@@ -19,6 +19,10 @@
       <Build />
       <Deploy />
     </Project>
+    <Project Path="../samples/TypeScript/WebApi/WebApi.esproj">
+      <Build />
+      <Deploy />
+    </Project>
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../README.md" />

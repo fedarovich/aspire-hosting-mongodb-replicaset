@@ -23,4 +23,12 @@ const dotNetLocal = await builder.addProject('DotNet-Local', '../../CSharp/WebAp
 const dotNetContainer = await builder.addDockerfileForProject('DotNet-Container', '../../CSharp/WebApi/WebApi.csproj')
     .withReference(mongoRS);
 
+const nodeLocal = await builder.addJavaScriptApp('NodeJS-Local', '../WebApi')
+    .withHttpEndpoint({ targetPort: 3000 })
+    .withReference(mongoRS);
+
+const nodeContainer = await builder.addDockerfile('NodeJS-Container', '../WebApi')
+    .withHttpEndpoint({ targetPort: 3000 })
+    .withReference(mongoRS);
+
 await builder.build().run();
