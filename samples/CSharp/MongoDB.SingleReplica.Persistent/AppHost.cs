@@ -30,4 +30,8 @@ var nodeContainer = builder.AddDockerfile("NodeJS-Container", "../../TypeScript/
     .WithHttpEndpoint(targetPort: 3000)
     .WithReference(mongoRs);
 
+var pythonContainer = builder.AddDockerfile("Python-Container", "../../Python/WebApi")
+    .WithHttpEndpoint(targetPort: 8000)
+    .WithReference(mongoRs);
+
 builder.Build().Run();

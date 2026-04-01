@@ -31,4 +31,8 @@ const nodeContainer = await builder.addDockerfile('NodeJS-Container', '../WebApi
     .withHttpEndpoint({ targetPort: 3000 })
     .withReference(mongoRS);
 
+const pythonContainer = await builder.addDockerfile('Python-Container', '../../Python/WebApi')
+    .withHttpEndpoint({ targetPort: 8000 })
+    .withReference(mongoRS);
+
 await builder.build().run();

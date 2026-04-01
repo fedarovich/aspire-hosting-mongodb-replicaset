@@ -1,0 +1,4 @@
+fastapi==0.115.12
+uvicorn==0.34.2
+pymongo==4.12.1
+scalar-fastapi==1.0.3
