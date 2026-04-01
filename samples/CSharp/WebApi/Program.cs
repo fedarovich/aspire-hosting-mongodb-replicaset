@@ -1,18 +1,18 @@
-using System.Net.Mime;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Scalar.AspNetCore;
+using System.Net.Mime;
+using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddMongoDBClient("TestMongoRS", 
+builder.AddMongoDBClient("TestMongoRS",
     configureClientSettings: settings =>
     {
-        // When running this project locally, it's not possible to override the certificate trust on the aspire side, however we can add our custom validation callback.
+        // When running this project locally, it's not possible to override the certificate trust on the Aspire side, however we can add our custom validation callback.
         // In this example, we look for a configuration value containing the expected thumbprint of the MongoDB server certificate,
         // and if it's set, we add a custom validation callback that checks the server certificate thumbprint against the expected value.
         // The configuration value is set on the Aspire side using the environment variable TESTMONGORS_CERTIFICATE_THUMBPRINT.
@@ -22,7 +22,7 @@ builder.AddMongoDBClient("TestMongoRS",
             settings.SslSettings.ServerCertificateValidationCallback = (_, certificate, _, _) =>
                 certificate is X509Certificate2 cert && cert.Thumbprint.Equals(mongoCertificateThumbprint, StringComparison.OrdinalIgnoreCase);
         }
-
+        
         // As an alternative to the above approach, you can also choose to allow insecure TLS connections in Development environment:
         // if (builder.Environment.IsDevelopment())
         // {
@@ -34,13 +34,8 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference("/");
-}
-
-app.UseHttpsRedirection();
+app.MapOpenApi();
+app.MapScalarApiReference("/");
 
 app.MapGet("/mongo/hello", async ([FromServices] IMongoClient mongoClient) =>
     {

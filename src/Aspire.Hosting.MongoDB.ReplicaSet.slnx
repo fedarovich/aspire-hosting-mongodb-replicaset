@@ -7,6 +7,7 @@
     <Project Path="../samples/CSharp/Percona.MutlipleReplicas/Percona.MutlipleReplicas.csproj" />
     <Project Path="../samples/CSharp/Percona.SingleReplica/Percona.SingleReplica.csproj" />
     <Project Path="../samples/CSharp/ServiceDefaults/ServiceDefaults.csproj" Id="53990c34-75b9-4246-883b-47fa2cd527db" />
+    <Project Path="../samples/CSharp/Shared/Shared.csproj" />
     <Project Path="../samples/CSharp/WebApi/WebApi.csproj" />
   </Folder>
   <Folder Name="/Samples/TypeScript/">

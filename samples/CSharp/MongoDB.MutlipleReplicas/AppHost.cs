@@ -1,5 +1,6 @@
 ﻿using Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 using Projects;
+using Shared;
 
 #pragma warning disable ASPIRECERTIFICATES001
 
@@ -37,5 +38,24 @@ var webApiLocal = builder.AddProject<WebApi>("WebApi-Local")
         context.EnvironmentVariables[$"{mongoRs.Resource.Name.ToUpperInvariant()}_CERTIFICATE_THUMBPRINT"] = mongoCertificate.Thumbprint;
         return Task.CompletedTask;
     });
+
+// Add sample services that use the replica set.
+
+// When running this project locally, it's not possible to override the certificate trust on the Aspire side,
+// however we can add our custom validation callback on the service side.
+// In this example, we pass the expected thumbprint of the MongoDB server certificate through an environment variable,
+// and WebApi project is configured to read this value and add a custom validation callback that checks the server certificate thumbprint against the expected value.
+var dotNetLocal = builder.AddProject<WebApi>("DotNet-Local")
+    .WithReference(mongoRs)
+    .WithCertificateTrustScope(CertificateTrustScope.Append)
+    .WithCertificateTrustConfiguration(context =>
+    {
+        context.EnvironmentVariables[$"{mongoRs.Resource.Name.ToUpperInvariant()}_CERTIFICATE_THUMBPRINT"] = mongoCertificate.Thumbprint;
+        return Task.CompletedTask;
+    });
+
+var dotNetContainer = builder.AddDockerfileForProject<WebApi>("DotNet-Container")
+    .WithReference(mongoRs)
+    .WithCertificateAuthorityCollection(mongoCertificateAuthority);
 
 builder.Build().Run();

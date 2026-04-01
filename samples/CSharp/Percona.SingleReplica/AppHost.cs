@@ -1,5 +1,6 @@
 ﻿using Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet;
 using Projects;
+using Shared;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -11,7 +12,12 @@ var mongoRs = builder.AddMongoDBReplicaSet("TestMongoRS")
     .WithMember(mongoServer)
     .WithDbGate();
 
-var webApiLocal = builder.AddProject<WebApi>("WebApi-Local")
+// Add sample services that use the replica set.
+
+var dotNetLocal = builder.AddProject<WebApi>("DotNet-Local")
+    .WithReference(mongoRs);
+
+var dotNetContainer = builder.AddDockerfileForProject<WebApi>("DotNet-Container")
     .WithReference(mongoRs);
 
 builder.Build().Run();

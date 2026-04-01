@@ -18,6 +18,7 @@
   },
   "packages": {
     "Aspire.Hosting.MongoDB": "13.2.0",
-    "Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet": "../../../src/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.csproj"
+    "Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet": "../../../src/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet/Fedarovich.Aspire.Hosting.MongoDB.ReplicaSet.csproj",
+    "Shared": "../../CSharp/Shared/Shared.csproj"
   }
 }
