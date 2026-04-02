@@ -39,4 +39,8 @@ const goContainer = await builder.addDockerfile('Go-Container', '../../Go/WebApi
     .withHttpEndpoint({ targetPort: 8080 })
     .withReference(mongoRS);
 
+const rustContainer = await builder.addDockerfile('Rust-Container', '../../Rust/WebApi')
+    .withHttpEndpoint({ targetPort: 8080 })
+    .withReference(mongoRS);
+
 await builder.build().run();

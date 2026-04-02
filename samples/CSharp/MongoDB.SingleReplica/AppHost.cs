@@ -47,4 +47,8 @@ var javaContainer = builder.AddDockerfile("Java-Container", "../../Java/WebApi")
         return Task.CompletedTask;
     });
 
+var rustContainer = builder.AddDockerfile("Rust-Container", "../../Rust/WebApi")
+    .WithHttpEndpoint(targetPort: 8080)
+    .WithReference(mongoRs);
+
 builder.Build().Run();
