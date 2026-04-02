@@ -41,11 +41,7 @@ var goContainer = builder.AddDockerfile("Go-Container", "../../Go/WebApi")
 var javaContainer = builder.AddDockerfile("Java-Container", "../../Java/WebApi")
     .WithHttpEndpoint(targetPort: 8080)
     .WithReference(mongoRs)
-    .WithCertificateTrustConfiguration(context =>
-    {
-        context.EnvironmentVariables["MONGO_CA_BUNDLE_PATH"] = context.CertificateBundlePath;
-        return Task.CompletedTask;
-    });
+    .WithJavaApplicationCertificateTrust();
 
 var rustContainer = builder.AddDockerfile("Rust-Container", "../../Rust/WebApi")
     .WithHttpEndpoint(targetPort: 8080)
