@@ -10,6 +10,11 @@
     <Project Path="../samples/CSharp/Shared/Shared.csproj" />
     <Project Path="../samples/CSharp/WebApi/WebApi.csproj" />
   </Folder>
+  <Folder Name="/Samples/Python/">
+    <Project Path="../samples/Python/WebApi/WebApi.pyproj" Type="888888a0-9f3d-457c-b088-3a5042f75d52" Id="42f39b15-11c4-4c7c-acf2-c9309d3571df">
+      <Build Project="false" />
+    </Project>
+  </Folder>
   <Folder Name="/Samples/TypeScript/">
     <Project Path="../samples/TypeScript/MongoDB.SingleReplica/MongoDB.SingleReplica.esproj">
       <Build />
